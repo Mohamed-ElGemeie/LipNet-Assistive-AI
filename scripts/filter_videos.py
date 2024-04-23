@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from gc import collect
 import random
 import numpy as np
+from math import sqrt
 
 WORK_DIR = r"E:/Video Links Dataset"
 CLIPPED_VIDEOS = WORK_DIR + r"/clipped/videos"
@@ -35,11 +36,12 @@ face_detection = FaceDetection(model_selection=2, min_detection_confidence=0)
 video_id = sys.argv[1]
 sub_id = int(sys.argv[2])
 
-input_video_path = CLIPPED_VIDEOS + f"/T_{video_id}_{sub_id}.mp4"
+input_video_path = FILTERED_VIDEOS + f"/{video_id}_{sub_id}.mp4"
 input_alignment_path =  CLIPPED_ALIGNMENTS+f"/{video_id}_{sub_id}.align"
 
 
 def log_status_video(status):
+    return
     status_df = read_csv(STATUS_DATASET)
     new_row = {'video_id': f"{video_id}_{sub_id}", 'status': status}
     status_df = concat([status_df, DataFrame([new_row])], ignore_index=True)
@@ -97,7 +99,7 @@ def video_is_accpeted():
             return
 
         # lip coordinates,
-        lip_pairs = [[13, 14], [82, 87], [312, 317],[81,178],[311,402],[310,318],[80,88]]
+        lip_pairs = [[13, 14]]
 
         # list for whether frames are lips are moving rapidly
         lip_diffs = []
@@ -180,9 +182,10 @@ def video_is_accpeted():
                         (upper_lip_y - lower_lip_y) ** 2
                     )
 
-                if prev_lip != None:
-                    lip_diffs.append(abs(prev_lip-lip_diff))
-                prev_lip = float(lip_diff)
+            if prev_lip != None:
+                lip_diffs.append(abs(prev_lip-sqrt(lip_diff)))
+
+            prev_lip = float(sqrt(lip_diff))
 
         if (len(lip_diffs) < int(video_frames*0.8)):
             log_status_video(f"No lips Detected 2")
@@ -201,8 +204,8 @@ def video_is_accpeted():
             print("False")
             cap.release()
             return
-
-        if(not check_outliers(lip_diffs,1)):
+        print(sum(lip_diffs)/len(lip_diffs))
+        if( (sum(lip_diffs)/len(lip_diffs)) < 1):
             log_status_video(f"Lips not moving")
             print("False")
             cap.release()
@@ -220,8 +223,8 @@ def video_is_accpeted():
             cap.release()
             return
         
-        copy(input_video_path,FILTERED_VIDEOS)
-        copy(input_alignment_path,FILTERED_ALIGNMENTS)
+        # copy(input_video_path,FILTERED_VIDEOS)
+        # copy(input_alignment_path,FILTERED_ALIGNMENTS)
         log_status_video(f"Parsed")
         print("True")
         cap.release()
