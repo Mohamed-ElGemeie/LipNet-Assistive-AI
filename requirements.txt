@@ -1,0 +1,12 @@
+matplotlib==3.8.0
+mediapipe==0.10.7
+moviepy==0.2.3.5
+numpy==1.26.4
+opencv_contrib_python==4.8.1.78
+opencv_python==4.8.1.78
+pandas==2.2.2
+pysrt==1.1.2
+pytube==15.0.0
+scikit_learn==1.4.2
+imageio==2.4.1
+tensorflow

@@ -4,44 +4,31 @@ from mediapipe.python.solutions.face_mesh import FaceMesh
 from mediapipe.python.solutions.face_detection import FaceDetection
 from pandas import read_csv, concat,DataFrame
 from numpy import mean
-from time import sleep
-from glob import glob
-from shutil import copy, move
-import matplotlib.pyplot as plt
-from gc import collect
-import random
+from shutil import copy
 import numpy as np
 from math import sqrt
 
 WORK_DIR = r"E:/Video Links Dataset"
 CLIPPED_VIDEOS = WORK_DIR + r"/clipped/videos"
 CLIPPED_ALIGNMENTS = WORK_DIR + r"/clipped/alignments"
-DOWNLOADED_VIDEOS = WORK_DIR + r"/downloaded/videos"
-DOWNLOADED_ALIGNMENTS = WORK_DIR + r"/downloaded/alignments"
 FILTERED_VIDEOS = WORK_DIR + r"/filtered/videos"
 FILTERED_ALIGNMENTS = WORK_DIR + r"/filtered/alignments"
-LINK_DATASET = WORK_DIR + r"/Video Links Dataset.csv"
 STATUS_DATASET = WORK_DIR + r"/Video Status.csv"
-LOG_FILE_DOWN = WORK_DIR + r"/log_down.txt"
-LOG_FILE_CLIP = WORK_DIR + r"/log_clip.txt"
 LOG_FILE_FILT = WORK_DIR + r"/log_filt.txt"
-PICKELS = WORK_DIR + r"/pickles"
-CLIPPER = r"scripts/clip_video.py"
 FILTERER = r'scripts/filter_videos.py'
 RUNTIME = sys.executable.replace('\\','/')
 
-face_mesh = FaceMesh(min_detection_confidence=0)
+face_mesh = FaceMesh(min_detection_confidence=0.2, static_image_mode=True)
 face_detection = FaceDetection(model_selection=2, min_detection_confidence=0)
 
 video_id = sys.argv[1]
 sub_id = int(sys.argv[2])
 
-input_video_path = FILTERED_VIDEOS + f"/{video_id}_{sub_id}.mp4"
+input_video_path = CLIPPED_VIDEOS + f"/T_{video_id}_{sub_id}.mp4"
 input_alignment_path =  CLIPPED_ALIGNMENTS+f"/{video_id}_{sub_id}.align"
 
 
 def log_status_video(status):
-    return
     status_df = read_csv(STATUS_DATASET)
     new_row = {'video_id': f"{video_id}_{sub_id}", 'status': status}
     status_df = concat([status_df, DataFrame([new_row])], ignore_index=True)
@@ -99,7 +86,8 @@ def video_is_accpeted():
             return
 
         # lip coordinates,
-        lip_pairs = [[13, 14]]
+        lip_pairs =  [[13, 17],[14, 0],
+                 [11,15],[12,16]]
 
         # list for whether frames are lips are moving rapidly
         lip_diffs = []
@@ -146,7 +134,7 @@ def video_is_accpeted():
                 cap.release()
                 return
    
-            if (not face_mesh_result.multi_face_landmarks):
+            if (not face_mesh_result.multi_face_landmarks) or first:
                 # log_status_video(f"No Lips Detected")
                 # print("False")
                 # cap.release()
@@ -170,7 +158,6 @@ def video_is_accpeted():
                     orientation_list.append(1)
 
                 lip_diff = 0
-
                 for lip_pair in lip_pairs:
                     upper_lip_x, upper_lip_y = int(
                         landmarks[lip_pair[0]].x * frame.shape[1]
@@ -178,16 +165,16 @@ def video_is_accpeted():
                     lower_lip_x, lower_lip_y = int(
                         landmarks[lip_pair[1]].x * frame.shape[1]
                     ), int(landmarks[lip_pair[1]].y * frame.shape[0])
-                    lip_diff += ((upper_lip_x - lower_lip_x) ** 2) + (
+                    lip_diff += abs(((upper_lip_x - lower_lip_x) ** 2) + (
                         (upper_lip_y - lower_lip_y) ** 2
-                    )
+                    ))
 
             if prev_lip != None:
                 lip_diffs.append(abs(prev_lip-sqrt(lip_diff)))
 
             prev_lip = float(sqrt(lip_diff))
 
-        if (len(lip_diffs) < int(video_frames*0.8)):
+        if (len(lip_diffs) < int((video_frames-2)*0.8)):
             log_status_video(f"No lips Detected 2")
             print("False")
             cap.release()
@@ -199,12 +186,18 @@ def video_is_accpeted():
             cap.release()
             return
 
-        if (len(orientation_list) < int(video_frames*0.8)):
+        if (len(orientation_list) < int((video_frames-1)*0.8)):
             log_status_video(f"No Orientation Detected")
             print("False")
             cap.release()
             return
-        print(sum(lip_diffs)/len(lip_diffs))
+
+        if(np.mean(lip_diffs) < 1.0):
+            log_status_video(f"Lips not moving")
+            print("False")
+            cap.release()
+            return
+            
         if( (sum(lip_diffs)/len(lip_diffs)) < 1):
             log_status_video(f"Lips not moving")
             print("False")
@@ -217,14 +210,14 @@ def video_is_accpeted():
             cap.release()
             return
 
-        if ((sum(orientation_list)/len(orientation_list)) < 0.9):
-            log_status_video(f"Bad Orientation {sum(orientation_list)/len(orientation_list)}")
+        if (np.mean(orientation_list) < 0.9):
+            log_status_video(f"Bad Orientation {np.mean(orientation_list)}")
             print("False")
             cap.release()
             return
         
-        # copy(input_video_path,FILTERED_VIDEOS)
-        # copy(input_alignment_path,FILTERED_ALIGNMENTS)
+        copy(input_video_path,FILTERED_VIDEOS)
+        copy(input_alignment_path,FILTERED_ALIGNMENTS)
         log_status_video(f"Parsed")
         print("True")
         cap.release()
