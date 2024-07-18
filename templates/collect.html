@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Video Player</title>
+    <style>
+        #video-container {
+            text-align: center;
+        }
+        .large-button {
+            font-size: 20px;
+            padding: 10px 20px;
+            margin: 10px;
+        }
+        #progress-container {
+            margin: 20px;
+        }
+        .label {
+            font-size: 18px;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="video-container">
+        <button id="open-video-button" class="large-button">Open Video</button>
+        <br>
+        <button id="accept-button" class="large-button">Accept</button>
+        <button id="reject-button" class="large-button">Reject</button>
+        <br>
+        <div id="progress-container">
+            <progress id="progress-bar" value="0" max="100"></progress>
+            <br>
+            <span id="videos-left" class="label">Videos left: 0</span>
+            <span id="videos-done" class="label">Videos done: 0</span>
+            <span id="videos-percent" class="label">0% done</span>
+        </div>
+        <br>
+        <div id="current-video-container">
+            <span id="current-video-label" class="label">Current video: </span>
+        </div>
+    </div>
+    <script>
+        const videos = {{ videos | tojson }};
+        let currentVideoIndex = 0;
+        const openVideoButton = document.getElementById('open-video-button');
+        const acceptButton = document.getElementById('accept-button');
+        const rejectButton = document.getElementById('reject-button');
+        const progressBar = document.getElementById('progress-bar');
+        const videosLeftLabel = document.getElementById('videos-left');
+        const videosDoneLabel = document.getElementById('videos-done');
+        const videosPercentLabel = document.getElementById('videos-percent');
+        const currentVideoLabel = document.getElementById('current-video-label');
+
+        function updateProgress() {
+            const videosDone = currentVideoIndex;
+            const videosLeft = videos.length - videosDone;
+            const percentDone = (videosDone / videos.length) * 100;
+
+            progressBar.value = percentDone;
+            videosLeftLabel.textContent = `Videos left: ${videosLeft}`;
+            videosDoneLabel.textContent = `Videos done: ${videosDone}`;
+            videosPercentLabel.textContent = `${percentDone.toFixed(2)}% done`;
+            if (currentVideoIndex < videos.length) {
+                currentVideoLabel.textContent = `Current video: ${videos[currentVideoIndex]}`;
+            } else {
+                currentVideoLabel.textContent = `Current video: None`;
+            }
+        }
+
+        function loadVideo(index) {
+            if (index < videos.length) {
+                const videoUrl = videos[index];
+                openVideoButton.onclick = () => window.open(videoUrl, '_blank');
+            } else {
+                alert('No more videos');
+            }
+            updateProgress();
+        }
+
+        acceptButton.addEventListener('click', () => {
+            const videoUrl = videos[currentVideoIndex];
+            fetch('/accept_video', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ video_url: videoUrl })
+            }).then(response => response.json())
+              .then(data => {
+                  if (data.status === 'success') {
+                      currentVideoIndex++;
+                      loadVideo(currentVideoIndex);
+                  }
+              });
+        });
+
+        rejectButton.addEventListener('click', () => {
+            const videoUrl = videos[currentVideoIndex];
+            fetch('/reject_video', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ video_url: videoUrl })
+            }).then(response => response.json())
+              .then(data => {
+                  if (data.status === 'success') {
+                      currentVideoIndex++;
+                      loadVideo(currentVideoIndex);
+                  }
+              });
+        });
+
+        loadVideo(currentVideoIndex);
+    </script>
+</body>
+</html>
