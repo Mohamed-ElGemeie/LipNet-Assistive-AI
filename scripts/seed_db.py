@@ -14,7 +14,7 @@ load_root_path()
 from models.videos import *
 
 # MongoDB connection
-client = MongoClient("mongodb://localhost:27017/")
+client = MongoClient(u'mongodb+srv://root:s2%23e!VYpVCFV%24sp@cluster0.vnmt6cj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
 client.drop_database('ArLip')
 
 db = client["ArLip"]

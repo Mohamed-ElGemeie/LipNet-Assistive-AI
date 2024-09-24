@@ -11,7 +11,7 @@ def load_root_path():
     sys.path.append(root_dir)
 
 def create_db_client():
-    client = MongoClient('mongodb://localhost:27017/')
+    client = MongoClient(u'mongodb+srv://root:s2%23e!VYpVCFV%24sp@cluster0.vnmt6cj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
     db = client['ArLip']
     return db
 
